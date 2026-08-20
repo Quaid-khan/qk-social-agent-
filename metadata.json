@@ -1,0 +1,6 @@
+{
+  "name": "QK Social Agent",
+  "description": "Autonomous multi-agent system for Reel content strategy, scriptwriting, media generation, quality control gates, human approval, scheduled publishing, analytics, and self-improving learning loop.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
