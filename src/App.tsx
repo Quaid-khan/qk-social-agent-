@@ -12,6 +12,7 @@ import { SecurityCompliance } from "./components/SecurityCompliance";
 import { TestSuiteRunner } from "./components/TestSuiteRunner";
 import { DocumentationViewer } from "./components/DocumentationViewer";
 import { InstagramAccountModal } from "./components/InstagramAccountModal";
+import { ModelSetupModal } from "./components/ModelSetupModal";
 import {
   AutonomyLevel,
   AgentInfo,
@@ -28,6 +29,7 @@ import { Zap, Sparkles, CheckCircle2, AlertCircle, Calendar, Bot } from "lucide-
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [geminiLive, setGeminiLive] = useState<boolean>(false);
+  const [modelSetup, setModelSetup] = useState<any>({ ready: false, settings: { text: { configured: false }, vision: { configured: false }, video: { configured: false }, voice: { configured: false } }, recommendations: { text: [], vision: [], video: [], voice: [] } });
   const [telemetry, setTelemetry] = useState<TelemetryState>({
     totalRuns: 0,
     successfulWorkflows: 0,
@@ -36,7 +38,7 @@ export default function App() {
     aiProviderCalls: 0,
     activeAutonomyLevel: "SEMI_AUTONOMOUS",
     instagramConnected: false,
-    instagramAccount: "@qk_create",
+    instagramAccount: "Not connected",
     followers: 0,
     engagementRate: "0%",
     reach30d: 0,
@@ -59,6 +61,7 @@ export default function App() {
   const [dailyBriefing, setDailyBriefing] = useState<DailyBriefingData | null>(null);
   const [showDailyBriefingModal, setShowDailyBriefingModal] = useState<boolean>(false);
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
+  const [showModelModal, setShowModelModal] = useState<boolean>(false);
   const [isWeeklyAnalyzing, setIsWeeklyAnalyzing] = useState<boolean>(false);
   const [weeklyAnalysis, setWeeklyAnalysis] = useState<WeeklyAnalysisData | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "info" | "warning" } | null>(null);
@@ -71,12 +74,15 @@ export default function App() {
   // Initial Load
   const fetchDashboardData = async () => {
     try {
-      const [dashRes, healthRes] = await Promise.all([
+      const [dashRes, healthRes, modelRes] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/health"),
+        fetch("/api/settings/models"),
       ]);
       const dashData = await dashRes.json();
       const healthData = await healthRes.json();
+      const modelData = await modelRes.json();
+      if (modelData.success) setModelSetup(modelData);
 
       if (dashData.telemetry) setTelemetry(dashData.telemetry);
       if (dashData.reels) {
@@ -95,6 +101,8 @@ export default function App() {
         }
       }
       if (healthData.geminiLive !== undefined) setGeminiLive(healthData.geminiLive);
+      if (dashData.telemetry && !dashData.telemetry.instagramConnected) setShowAccountModal(true);
+      else if (modelData.success && !modelData.ready) setShowModelModal(true);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
     }
@@ -106,6 +114,16 @@ export default function App() {
 
   // Handler: Run Goal through Orchestrator
   const handleRunGoal = async (goal: string, customTopic?: string, targetAudience?: string) => {
+    if (!telemetry.instagramConnected) {
+      setShowAccountModal(true);
+      showToast("Connect your Instagram account before creating a Reel.", "warning");
+      return;
+    }
+    if (!modelSetup.ready) {
+      setShowModelModal(true);
+      showToast("Choose a text model and API key before creating a Reel.", "warning");
+      return;
+    }
     setIsOrchestrating(true);
     showToast("SocialOrchestrator initiated task DAG decomposition...", "info");
 
@@ -134,6 +152,10 @@ export default function App() {
         setTelemetry((prev) => ({ ...prev, totalRuns: prev.totalRuns + 1 }));
         showToast("Reel created successfully! Ready for your review & approval.", "success");
       } else {
+        if (response.status === 428 || data.setupRequired) {
+          if (data.accountRequired) setShowAccountModal(true);
+          else if (data.modelRequired) setShowModelModal(true);
+        }
         showToast(data.error || "Could not generate Reel. Please try again.", "warning");
       }
     } catch (err: any) {
@@ -231,6 +253,19 @@ export default function App() {
     }
   };
 
+  const handleSaveModels = async (settings: Record<string, { provider: string; model: string; apiKey: string }>) => {
+    const res = await fetch("/api/settings/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Could not save model setup.");
+    setModelSetup((previous: any) => ({ ...previous, ...data }));
+    setGeminiLive(Boolean(data.ready));
+    showToast("AI model setup saved. Reel creation is now ready when Instagram is connected.", "success");
+  };
+
   // Handler: Save & Link Instagram Account
   const handleSaveAccount = async (accountName: string, accessToken?: string, accountId?: string) => {
     try {
@@ -240,16 +275,20 @@ export default function App() {
         body: JSON.stringify({ accountName, accessToken, accountId }),
       });
       const data = await res.json();
-      if (data.success) {
-        setTelemetry((prev) => ({
-          ...prev,
-          instagramAccount: data.account,
-          instagramConnected: true,
-        }));
-        showToast(`Instagram account ${data.account} successfully linked and active!`, "success");
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Meta could not verify this Instagram account.");
       }
+      setTelemetry((prev) => ({
+        ...prev,
+        instagramAccount: data.account,
+        instagramConnected: true,
+        followers: data.followers ?? prev.followers,
+      }));
+      showToast(`Instagram account ${data.account} successfully verified and linked!`, "success");
+      setTimeout(() => setShowModelModal(true), 1300);
     } catch (err: any) {
-      showToast(err.message || "Failed to update account binding", "warning");
+      showToast(err.message || "Failed to verify account binding", "warning");
+      throw err;
     }
   };
 
@@ -314,7 +353,7 @@ export default function App() {
   const pendingApprovalsCount = reels.filter((r) => r.status === "needs_approval").length;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-[#E0E0E0] flex flex-col font-sans selection:bg-[#FF3E00] selection:text-white">
+    <div className="app-shell min-h-screen bg-[#0A0A0B] text-[#E0E0E0] flex flex-col font-sans selection:bg-[#FF3E00] selection:text-white animate-fade-in">
       {/* Toast Notification */}
       {notification && (
         <div className="fixed bottom-5 right-5 z-50 animate-bounce">
@@ -347,12 +386,13 @@ export default function App() {
         onAutonomyChange={handleAutonomyChange}
         onRunDailyBriefing={handleRunDailyBriefing}
         onOpenAccountModal={() => setShowAccountModal(true)}
+        onOpenModelSetup={() => setShowModelModal(true)}
         pendingApprovalsCount={pendingApprovalsCount}
         geminiLive={geminiLive}
       />
 
       {/* Primary Main Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 lg:px-6 py-4 sm:py-5">
+      <main className="app-main flex-1 max-w-7xl w-full mx-auto px-3 sm:px-5 lg:px-6 py-5 sm:py-7">
         {activeTab === "dashboard" && (
           <MasterDashboard
             telemetry={telemetry}
@@ -365,6 +405,7 @@ export default function App() {
             }}
             onOpenApproval={(reel) => setApprovalModalReel(reel)}
             onNavigateTab={(tab) => setActiveTab(tab)}
+            modelReady={modelSetup.ready}
           />
         )}
 
@@ -377,6 +418,11 @@ export default function App() {
             autonomyLevel={telemetry.activeAutonomyLevel}
             onOpenApproval={(reel) => setApprovalModalReel(reel)}
             geminiLive={geminiLive}
+            setupReady={telemetry.instagramConnected && modelSetup.ready}
+            onOpenSetup={() => {
+              if (!telemetry.instagramConnected) setShowAccountModal(true);
+              else setShowModelModal(true);
+            }}
           />
         )}
 
@@ -529,6 +575,16 @@ export default function App() {
         onClose={() => setShowAccountModal(false)}
         currentAccount={telemetry.instagramAccount}
         onSaveAccount={handleSaveAccount}
+        isFirstRun={!telemetry.instagramConnected}
+      />
+
+      <ModelSetupModal
+        isOpen={showModelModal}
+        onClose={() => setShowModelModal(false)}
+        onSave={handleSaveModels}
+        recommendations={modelSetup.recommendations}
+        currentSettings={modelSetup.settings}
+        isFirstRun={!modelSetup.ready}
       />
 
       {/* Daily Briefing Modal */}
@@ -608,8 +664,8 @@ export default function App() {
             </span>
             <span className="text-[#2A2A2C]">|</span>
             <span className="flex items-center space-x-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span>META_GRAPH_V21: CONNECTED</span>
+              <span className={`h-1.5 w-1.5 rounded-full ${telemetry.instagramConnected ? "bg-emerald-400" : "bg-amber-400"}`} />
+              <span>{telemetry.instagramConnected ? "META_GRAPH: CONNECTED" : "META_GRAPH: NOT CONFIGURED"}</span>
             </span>
             <span className="text-[#2A2A2C]">|</span>
             <span className="flex items-center space-x-1.5">

@@ -1,11 +1,21 @@
 import React, { useState } from "react";
-import { Instagram, ShieldCheck, Key, CheckCircle2, AlertCircle, ExternalLink, X } from "lucide-react";
+import {
+  Instagram,
+  ShieldCheck,
+  KeyRound,
+  CircleHelp,
+  ExternalLink,
+  CheckCircle2,
+  X,
+  ArrowRight,
+} from "lucide-react";
 
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentAccount: string;
   onSaveAccount: (accountName: string, accessToken?: string, accountId?: string) => Promise<void>;
+  isFirstRun?: boolean;
 }
 
 export const InstagramAccountModal: React.FC<AccountModalProps> = ({
@@ -13,159 +23,103 @@ export const InstagramAccountModal: React.FC<AccountModalProps> = ({
   onClose,
   currentAccount,
   onSaveAccount,
+  isFirstRun = false,
 }) => {
-  const [handle, setHandle] = useState(currentAccount.replace("@", "") || "qk_create");
+  const [handle, setHandle] = useState(currentAccount.startsWith("@") ? currentAccount.slice(1) : "");
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setIsSaving(true);
     setSuccessMsg("");
+    setErrorMsg("");
     try {
-      await onSaveAccount(handle, token || undefined, accountId || undefined);
-      setSuccessMsg(`Account @${handle} successfully linked and verified!`);
+      await onSaveAccount(handle, token, accountId);
+      setSuccessMsg(`Connected ${handle ? `@${handle}` : "your Instagram account"} successfully.`);
       setTimeout(() => {
         setSuccessMsg("");
         onClose();
-      }, 1500);
-    } catch (err) {
-      console.error("Failed to save account", err);
+      }, 1200);
+    } catch (error: any) {
+      setErrorMsg(error.message || "We could not verify these credentials. Check the account ID, token, and permissions.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
-      <div className="bg-[#121214] border border-[#2A2A2C] rounded-sm w-full max-w-lg shadow-2xl overflow-hidden text-[#E0E0E0] font-mono">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2A2C] bg-[#0F0F10]">
-          <div className="flex items-center space-x-2">
-            <div className="h-6 w-6 rounded-xs bg-[#FF3E00] flex items-center justify-center text-white">
-              <Instagram className="h-3.5 w-3.5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[24px] border border-white/15 bg-[#101827]/95 shadow-2xl text-[#E0E0E0]">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#ffb3d1] via-[#e779ae] to-[#8d7dff] text-white shadow-lg shadow-pink-500/20">
+              <Instagram className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                Link Instagram Account
-              </h3>
-              <span className="text-[9px] text-[#888888]">Meta Graph API & Channel Binding</span>
+              <h3 className="text-base font-semibold tracking-tight text-white">{isFirstRun ? "Connect your Instagram" : "Instagram account settings"}</h3>
+              <p className="mt-0.5 text-xs text-slate-400">Your account, your token, your publishing channel.</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-[#888888] hover:text-white rounded-xs hover:bg-[#1A1A1C] transition cursor-pointer"
-          >
+          <button onClick={onClose} className="rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-white" aria-label="Close setup">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-3.5">
-          {/* Active Target Banner */}
-          <div className="bg-[#161618] border border-[#2A2A2C] rounded-xs p-3 flex items-center justify-between">
-            <div className="flex items-center space-x-2.5">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                QK
+        <form onSubmit={handleSubmit} className="space-y-5 p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["1", "Use a Professional account", "Connect it to a Facebook Page in Instagram settings."],
+              ["2", "Create or open a Meta app", "Use the Instagram Platform tools and request publishing permissions."],
+              ["3", "Copy your ID and token", "Get both from Meta Graph API Explorer, then paste them below."],
+            ].map(([number, title, description]) => (
+              <div key={number} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                <div className="mb-2 grid h-6 w-6 place-items-center rounded-full bg-white/10 text-[10px] font-bold text-[#a9ceff]">{number}</div>
+                <div className="text-xs font-semibold text-white">{title}</div>
+                <div className="mt-1 text-[10px] leading-relaxed text-slate-400">{description}</div>
               </div>
-              <div>
-                <span className="text-[10px] text-[#888888] block">Current Bound Target:</span>
-                <span className="text-xs font-bold text-white">@{handle}</span>
+            ))}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Instagram username <span className="normal-case tracking-normal text-slate-500">(optional)</span></span>
+              <div className="flex items-center rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 focus-within:border-[#78aaff]/70">
+                <span className="mr-1.5 text-sm text-slate-500">@</span>
+                <input value={handle} onChange={(event) => setHandle(event.target.value.replace(/^@/, ""))} placeholder="your_business_account" className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600" />
               </div>
-            </div>
-            <span className="px-2 py-0.5 rounded-xs bg-emerald-950 text-emerald-400 border border-emerald-800 text-[9px] font-bold uppercase">
-              ACTIVE BINDING
-            </span>
-          </div>
-
-          {/* Handle Input */}
-          <div>
-            <label className="block text-[10px] uppercase font-bold text-[#888888] mb-1">
-              Instagram Handle
             </label>
-            <div className="flex items-center bg-[#0F0F10] border border-[#2A2A2C] rounded-xs px-2.5 py-1.5 focus-within:border-[#FF3E00]">
-              <span className="text-[#666666] text-xs mr-1">@</span>
-              <input
-                type="text"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                placeholder="qk_create"
-                required
-                className="bg-transparent text-xs text-white focus:outline-none w-full font-mono"
-              />
-            </div>
-          </div>
-
-          {/* Account ID Input (Optional) */}
-          <div>
-            <label className="block text-[10px] uppercase font-bold text-[#888888] mb-1">
-              Instagram Business Account ID (Optional)
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Instagram Business ID</span>
+              <input required value={accountId} onChange={(event) => setAccountId(event.target.value)} placeholder="17841400000000000" className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-600 focus:border-[#78aaff]/70" />
+              <span className="mt-1.5 block text-[10px] text-slate-500">Usually returned from `me/accounts?fields=instagram_business_account`.</span>
             </label>
-            <input
-              type="text"
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-              placeholder="e.g. 17841400000000000"
-              className="bg-[#0F0F10] border border-[#2A2A2C] rounded-xs px-2.5 py-1.5 focus:border-[#FF3E00] focus:outline-none text-xs text-white w-full font-mono"
-            />
-            <span className="text-[9px] text-[#666666] mt-0.5 block">
-              Found via Graph API Explorer: <code className="text-[#888888]">GET me/accounts?fields=instagram_business_account</code>
-            </span>
           </div>
 
-          {/* Access Token Input (Optional) */}
-          <div>
-            <label className="block text-[10px] uppercase font-bold text-[#888888] mb-1">
-              Meta Long-Lived User Access Token (Optional)
-            </label>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="EAA..."
-              className="bg-[#0F0F10] border border-[#2A2A2C] rounded-xs px-2.5 py-1.5 focus:border-[#FF3E00] focus:outline-none text-xs text-white w-full font-mono"
-            />
-            <span className="text-[9px] text-[#666666] mt-0.5 block">
-              If not provided, the agent operates in Hardened Simulation & Approval Sandbox mode.
-            </span>
+          <label className="block">
+            <span className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400"><KeyRound className="h-3.5 w-3.5 text-[#a9ceff]" /> Meta access token</span>
+            <input required type="password" value={token} onChange={(event) => setToken(event.target.value)} placeholder="Paste your token beginning with EAA..." className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-600 focus:border-[#78aaff]/70" />
+            <span className="mt-1.5 block text-[10px] text-slate-500">Use a token with Instagram content publishing and comment-management permissions.</span>
+          </label>
+
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white">Open Graph API Explorer <ExternalLink className="h-3 w-3" /></a>
+            <a href="https://developers.facebook.com/documentation/instagram-platform/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white">Read Meta setup guide <ExternalLink className="h-3 w-3" /></a>
           </div>
 
-          {/* Success Message */}
-          {successMsg && (
-            <div className="flex items-center space-x-2 bg-emerald-950/60 border border-emerald-800 text-emerald-300 p-2 rounded-xs text-xs">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
+          {successMsg && <div className="flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 p-3 text-xs text-emerald-200"><CheckCircle2 className="h-4 w-4" />{successMsg}</div>}
+          {errorMsg && <div className="rounded-xl border border-rose-400/25 bg-rose-400/10 p-3 text-xs leading-relaxed text-rose-200">{errorMsg}</div>}
 
-          {/* Security Guarantee */}
-          <div className="flex items-start space-x-2 text-[10px] text-[#888888] bg-[#0F0F10] p-2.5 rounded-xs border border-[#2A2A2C]">
-            <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-            <span>
-              All tokens are encrypted in server-memory only and never logged or exposed to the client. Pre-flight approval hardlock remains enforced.
-            </span>
-          </div>
+          <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-3 text-[11px] leading-relaxed text-slate-400"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" /><span>The token is accepted only by the server endpoint, kept in server memory, and never returned to the client. Live publishing remains behind the human approval gate.</span></div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-[#2A2A2C]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 rounded-xs bg-[#1A1A1C] hover:bg-[#222226] text-[#888888] hover:text-white text-xs cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-4 py-1.5 rounded-xs bg-[#FF3E00] hover:bg-[#E03700] text-white font-bold text-xs cursor-pointer transition shadow-xs"
-            >
-              {isSaving ? "Linking Target..." : "Save & Bind Account"}
-            </button>
+          <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            {isFirstRun ? <button type="button" onClick={onClose} className="text-xs text-slate-500 transition hover:text-white">Continue in preview mode</button> : <span />}
+            <button type="submit" disabled={isSaving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#78b2ff] to-[#9b8cff] px-4 py-2.5 text-xs font-bold text-[#08101d] shadow-lg shadow-[#78b2ff]/15 transition hover:-translate-y-0.5 hover:shadow-[#78b2ff]/25 disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? "Verifying connection…" : "Connect my Instagram"}<ArrowRight className="h-3.5 w-3.5" /></button>
           </div>
         </form>
       </div>

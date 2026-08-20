@@ -47,6 +47,15 @@ export interface ReelApproval {
   feedback?: string;
 }
 
+export interface ReelMedia {
+  status: "rendering" | "ready" | "failed";
+  url: string;
+  format?: string;
+  mimeType?: string;
+  error?: string;
+  publish?: any;
+}
+
 export interface ReelItem {
   id: string;
   title: string;
@@ -68,6 +77,7 @@ export interface ReelItem {
   visuals?: any;
   qualityScore: QualityScore;
   approval: ReelApproval;
+  media?: ReelMedia;
 }
 
 export interface LearningItem {

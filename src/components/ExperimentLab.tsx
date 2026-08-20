@@ -98,14 +98,20 @@ export const ExperimentLab: React.FC<ExperimentLabProps> = ({
           </div>
           <div className="bg-[#0F0F10] p-2 rounded-xs border border-[#2A2A2C]">
             <span className="text-[9px] text-[#888888] uppercase block">Avg Lift Generated</span>
-            <span className="text-sm font-bold text-[#FF3E00]">+48.2%</span>
+            <span className="text-sm font-bold text-[#FF3E00]">{experiments.length > 0 ? "Tracked" : "—"}</span>
           </div>
         </div>
       </div>
 
       {/* Experiments Cards Grid */}
       <div className="space-y-3">
-        {experiments.map((exp) => {
+        {experiments.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.025] px-5 py-10 text-center">
+            <FlaskConical className="mx-auto h-7 w-7 text-slate-500" />
+            <p className="mt-3 text-sm font-semibold text-slate-300">No experiments yet</p>
+            <p className="mt-1 text-xs text-slate-500">Launch an A/B test after you have published real Reels and collected baseline data.</p>
+          </div>
+        ) : experiments.map((exp) => {
           const isCompleted = exp.status === "completed";
 
           return (

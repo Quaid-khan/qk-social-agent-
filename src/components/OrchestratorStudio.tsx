@@ -27,6 +27,8 @@ interface OrchestratorStudioProps {
   autonomyLevel: AutonomyLevel;
   onOpenApproval: (reel: ReelItem) => void;
   geminiLive: boolean;
+  setupReady: boolean;
+  onOpenSetup: () => void;
 }
 
 export const OrchestratorStudio: React.FC<OrchestratorStudioProps> = ({
@@ -37,12 +39,12 @@ export const OrchestratorStudio: React.FC<OrchestratorStudioProps> = ({
   autonomyLevel,
   onOpenApproval,
   geminiLive,
+  setupReady,
+  onOpenSetup,
 }) => {
-  const [goalInput, setGoalInput] = useState(
-    "Create 4 technology Reels this week and optimize future content based on performance."
-  );
-  const [customTopic, setCustomTopic] = useState("Autonomous Multi-Agent Systems & Vector DBs");
-  const [targetAudience, setTargetAudience] = useState("Software Engineers, AI Builders, Tech Founders");
+  const [goalInput, setGoalInput] = useState("");
+  const [customTopic, setCustomTopic] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
   const [expandedStepIndex, setExpandedStepIndex] = useState<number | null>(null);
 
   const presetGoals = [
@@ -70,6 +72,10 @@ export const OrchestratorStudio: React.FC<OrchestratorStudioProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!setupReady) {
+      onOpenSetup();
+      return;
+    }
     if (!goalInput.trim() || isRunning) return;
     onRunGoal(goalInput, customTopic, targetAudience);
   };
@@ -84,16 +90,16 @@ export const OrchestratorStudio: React.FC<OrchestratorStudioProps> = ({
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-sm font-bold text-white font-mono">
-                  AI Reel Creator
-                </h2>
-                <span className="px-1.5 py-0.2 rounded-xs bg-[#1A1A1C] text-emerald-400 text-[10px] font-mono border border-[#2A2A2C]">
-                  READY
-                </span>
-              </div>
-              <p className="text-xs text-[#888888]">
-                Type your topic or choose an idea below. AI writes the hook, script, visual cues, and hashtags.
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-sm font-bold text-white font-mono">
+                      AI Reel Creator
+                    </h2>
+                    <span className={`px-1.5 py-0.2 rounded-xs ${setupReady ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : "bg-amber-500/10 text-amber-300 border-amber-500/30"} text-[10px] font-mono border`}>
+                      {setupReady ? "READY" : "SETUP REQUIRED"}
+                    </span>
+                  </div>
+                <p className="text-xs text-[#888888]">
+                {setupReady ? "Type your topic or choose an idea below. Your selected model writes the hook, script, visual cues, and hashtags." : "Connect Instagram and configure your text model before the agent can generate content."}
               </p>
             </div>
           </div>
@@ -119,6 +125,12 @@ export const OrchestratorStudio: React.FC<OrchestratorStudioProps> = ({
         </div>
 
         {/* Goal Input Form */}
+        {!setupReady && (
+          <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2 text-xs text-amber-100"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><span>Creation is locked until your Instagram account and text model API key are configured.</span></div>
+            <button type="button" onClick={onOpenSetup} className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-amber-300 px-3 py-2 text-[11px] font-bold text-[#17120a] transition hover:-translate-y-0.5">Open setup <Zap className="h-3 w-3" /></button>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="mt-3 space-y-3">
           <div>
             <label className="text-xs font-semibold text-[#C0C0C0] block mb-1">
@@ -166,7 +178,7 @@ export const OrchestratorStudio: React.FC<OrchestratorStudioProps> = ({
 
             <button
               type="submit"
-              disabled={isRunning}
+                disabled={isRunning || !setupReady}
               className={`w-full sm:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xs font-bold text-xs uppercase tracking-wider font-mono shadow-xs transition cursor-pointer ${
                 isRunning
                   ? "bg-[#2A2A2C] text-[#666666] cursor-not-allowed"

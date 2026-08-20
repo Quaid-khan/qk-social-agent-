@@ -355,14 +355,25 @@ export const ReelPreviewPlayer: React.FC<ReelPreviewPlayerProps> = ({
               <div className="w-1 h-1 rounded-full bg-[#2A2A2C]" />
             </div>
 
-            {/* Video Canvas Element */}
+              {/* Real MP4 when rendered; canvas remains the local preview fallback. */}
             <div className="relative w-full h-full rounded-[20px] overflow-hidden bg-[#0A0A0B]">
-              <canvas
-                ref={canvasRef}
-                width={280}
-                height={498}
-                className="w-full h-full object-cover"
-              />
+              {reel.media?.status === "ready" && reel.media.url ? (
+                <video
+                  src={reel.media.url}
+                  className="w-full h-full object-cover"
+                  autoPlay={isPlaying}
+                  loop
+                  muted={isMuted}
+                  playsInline
+                />
+              ) : (
+                <canvas
+                  ref={canvasRef}
+                  width={280}
+                  height={498}
+                  className="w-full h-full object-cover"
+                />
+              )}
 
               {/* Safe Zone Boundary Guidelines Overlay */}
               {showSafeZones && (
@@ -451,7 +462,7 @@ export const ReelPreviewPlayer: React.FC<ReelPreviewPlayerProps> = ({
                   <div className="h-4 w-4 rounded-xs bg-[#FF3E00] flex items-center justify-center text-[8px] font-bold text-white">
                     QK
                   </div>
-                  <span className="text-[10px] font-bold text-white font-mono">@techforge.ai</span>
+                  <span className="text-[10px] font-bold text-white font-mono">@your_account</span>
                   <span className="text-[8px] text-[#38bdf8] font-mono">• Follow</span>
                 </div>
                 <p className="text-[9px] text-[#C0C0C0] line-clamp-2">

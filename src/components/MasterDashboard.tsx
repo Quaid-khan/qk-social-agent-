@@ -29,6 +29,7 @@ interface MasterDashboardProps {
   onSelectReel: (reel: ReelItem) => void;
   onOpenApproval: (reel: ReelItem) => void;
   onNavigateTab: (tab: string) => void;
+  modelReady: boolean;
 }
 
 export const MasterDashboard: React.FC<MasterDashboardProps> = ({
@@ -39,6 +40,7 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
   onSelectReel,
   onOpenApproval,
   onNavigateTab,
+  modelReady,
 }) => {
   const [showSwarmDetails, setShowSwarmDetails] = useState(false);
   const scheduledReels = reels.filter((r) => r.status === "scheduled");
@@ -58,10 +60,10 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
               <h2 className="text-sm font-bold text-white font-mono">
                 Instagram Manager ({telemetry.instagramAccount})
               </h2>
-              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              <span className={`h-2 w-2 rounded-full ${telemetry.instagramConnected && modelReady ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" : "bg-amber-400"}`} />
             </div>
             <p className="text-xs text-[#888888] mt-0.5">
-              Ready to generate high-retention 9:16 reels, schedule posts, and reply to DMs.
+              {telemetry.instagramConnected && modelReady ? "Your channel is ready for review-gated Reels, scheduling, publishing, and comment replies." : "Connect Instagram and configure a model to unlock Reel creation and live engagement."}
             </p>
           </div>
         </div>
@@ -93,7 +95,7 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
             </h3>
             <div className="flex items-center space-x-1 mt-0.5 text-[10px] text-emerald-400 font-mono">
               <ArrowUpRight className="h-3 w-3" />
-              <span>+1,420 this week</span>
+              <span>{telemetry.followers > 0 ? "Live audience metric" : "Connect Instagram to load audience data"}</span>
             </div>
           </div>
         </div>
@@ -112,7 +114,7 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
             </h3>
             <div className="flex items-center space-x-1 mt-0.5 text-[10px] text-emerald-400 font-mono">
               <ArrowUpRight className="h-3 w-3" />
-              <span>+38.4% vs last cycle</span>
+              <span>{telemetry.reach30d > 0 ? "Live reach metric" : "No reach data yet"}</span>
             </div>
           </div>
         </div>
@@ -128,7 +130,7 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
           <div className="mt-1.5">
             <h3 className="text-xl font-bold text-white font-mono">{telemetry.engagementRate}</h3>
             <div className="flex items-center space-x-1 mt-0.5 text-[10px] text-[#38bdf8] font-mono">
-              <span>Top 5% tech tier</span>
+              <span>{telemetry.engagementRate !== "0%" ? "Live engagement metric" : "No engagement data yet"}</span>
             </div>
           </div>
         </div>
@@ -188,8 +190,8 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
             <h3 className="text-xs font-bold uppercase tracking-wider text-white font-mono">
               AI Swarm Status
             </h3>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            <span className="text-[10px] text-emerald-400 font-mono font-bold">7 NODES HEALTHY</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${telemetry.instagramConnected && modelReady ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" : "bg-amber-400"}`} />
+            <span className={`text-[10px] font-mono font-bold ${telemetry.instagramConnected && modelReady ? "text-emerald-400" : "text-amber-300"}`}>{telemetry.instagramConnected && modelReady ? "7 NODES READY" : "SETUP REQUIRED"}</span>
           </div>
 
           <button className="flex items-center space-x-1 text-[11px] text-[#888888] hover:text-white font-mono">
@@ -203,14 +205,14 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
             {agents.map((agent) => (
               <div
                 key={agent.id}
-                className="bg-[#161618] border-l-2 border-l-emerald-500 border border-[#2A2A2C] rounded-xs p-2.5 flex flex-col justify-between hover:border-[#444446] transition"
+                className={`bg-[#161618] border-l-2 ${agent.status === "idle" ? "border-l-slate-600" : "border-l-emerald-500"} border border-[#2A2A2C] rounded-xs p-2.5 flex flex-col justify-between hover:border-[#444446] transition`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-white font-mono">{agent.name}</span>
                     <div className="flex items-center space-x-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.8)]" />
-                      <span className="text-[9px] font-mono font-semibold text-emerald-400 uppercase">
+                      <span className={`h-1.5 w-1.5 rounded-full ${agent.status === "idle" ? "bg-slate-600" : "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.8)]"}`} />
+                      <span className={`text-[9px] font-mono font-semibold uppercase ${agent.status === "idle" ? "text-slate-500" : "text-emerald-400"}`}>
                         {agent.status}
                       </span>
                     </div>
@@ -248,7 +250,7 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
           <div className="space-y-2 mt-3">
             {reels.length === 0 ? (
               <div className="text-center py-6 text-[#666666] text-xs font-mono">
-                No Reels generated yet. Launch the Orchestrator to begin.
+                No Reels generated yet. {telemetry.instagramConnected && modelReady ? "Create your first Reel to begin." : "Complete Instagram and model setup to unlock creation."}
               </div>
             ) : (
               reels.slice(0, 4).map((reel) => {

@@ -5,6 +5,7 @@ import {
   XCircle,
   Clock,
   Send,
+  PlayCircle,
   AlertTriangle,
   Sparkles,
   Calendar,
@@ -35,6 +36,8 @@ export const ApprovalGateModal: React.FC<ApprovalGateModalProps> = ({
   const [scheduleDate, setScheduleDate] = useState(
     new Date(Date.now() + 86400000).toISOString().slice(0, 16)
   );
+  const [reviewedReelId, setReviewedReelId] = useState<string | null>(null);
+  const hasReviewedVideo = reviewedReelId === reel.id;
 
   const handleApproveAction = (action: "approve" | "publish_now") => {
     confetti({
@@ -99,6 +102,37 @@ export const ApprovalGateModal: React.FC<ApprovalGateModalProps> = ({
               <span>•</span>
               <span>QC: <strong className="text-emerald-400">{reel.qualityScore?.overall || 95}/100</strong></span>
             </div>
+          </div>
+
+          {/* Mandatory pre-publish video review */}
+          <div className="bg-[#0F0F10] rounded-xs border border-[#38bdf8]/50 p-3">
+            <div className="flex items-center space-x-1.5 mb-2">
+              <PlayCircle className="h-3.5 w-3.5 text-[#38bdf8]" />
+              <span className="text-[10px] uppercase tracking-wider font-bold text-white font-mono">Watch rendered video before posting</span>
+            </div>
+            {reel.media?.status === "ready" && reel.media.url ? (
+              <video
+                src={reel.media.url}
+                controls
+                preload="metadata"
+                playsInline
+                className="w-full max-h-[360px] rounded-xs bg-black object-contain border border-[#2A2A2C]"
+              />
+            ) : (
+              <div className="rounded-xs border border-amber-800/70 bg-amber-950/20 p-3 text-[11px] text-amber-300 font-mono">
+                The rendered MP4 is not ready yet. Refresh the Reel after rendering completes before publishing.
+              </div>
+            )}
+            <label className="mt-2 flex items-center gap-2 text-[10px] text-[#C0C0C0] font-mono cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasReviewedVideo}
+                onChange={(event) => setReviewedReelId(event.target.checked ? reel.id : null)}
+                disabled={reel.media?.status !== "ready"}
+                className="accent-[#FF3E00]"
+              />
+              <span>I reviewed the rendered video and approve this exact version.</span>
+            </label>
           </div>
 
           {/* QC Checklist Verification */}
@@ -191,7 +225,8 @@ export const ApprovalGateModal: React.FC<ApprovalGateModalProps> = ({
           <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button
               onClick={() => handleApproveAction("approve")}
-              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xs bg-[#1A1A1C] hover:bg-[#222226] border border-[#2A2A2C] text-white text-xs font-bold transition cursor-pointer"
+              disabled={!hasReviewedVideo}
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xs bg-[#1A1A1C] hover:bg-[#222226] border border-[#2A2A2C] text-white text-xs font-bold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Calendar className="h-3 w-3 text-[#38bdf8]" />
               <span>Approve & Schedule</span>
@@ -199,7 +234,8 @@ export const ApprovalGateModal: React.FC<ApprovalGateModalProps> = ({
 
             <button
               onClick={() => handleApproveAction("publish_now")}
-              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xs bg-[#FF3E00] hover:bg-[#E03700] text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              disabled={!hasReviewedVideo}
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-xs bg-[#FF3E00] hover:bg-[#E03700] text-white text-xs font-bold shadow-xs transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="h-3 w-3 text-white" />
               <span>Approve & Publish Now</span>

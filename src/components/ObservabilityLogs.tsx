@@ -33,7 +33,7 @@ export const ObservabilityLogs: React.FC<ObservabilityLogsProps> = ({
           <h3 className="text-base font-bold text-white mt-1">
             {telemetry.averageLatencyMs}ms
           </h3>
-          <span className="text-[9px] text-emerald-400">Sub-2s Goal to QC</span>
+          <span className="text-[9px] text-emerald-400">{telemetry.averageLatencyMs > 0 ? "Measured from runs" : "No runs yet"}</span>
         </div>
 
         <div className="bg-[#121214] border border-[#2A2A2C] rounded-sm p-3 shadow-xs">
@@ -44,7 +44,7 @@ export const ObservabilityLogs: React.FC<ObservabilityLogsProps> = ({
           <h3 className="text-base font-bold text-white mt-1">
             {telemetry.aiProviderCalls}
           </h3>
-          <span className="text-[9px] text-[#38bdf8]">Gemini 3.7 Flash</span>
+          <span className="text-[9px] text-[#38bdf8]">{telemetry.aiProviderCalls > 0 ? "Selected model" : "No model calls yet"}</span>
         </div>
 
         <div className="bg-[#121214] border border-[#2A2A2C] rounded-sm p-3 shadow-xs">
@@ -52,8 +52,8 @@ export const ObservabilityLogs: React.FC<ObservabilityLogsProps> = ({
             <span>Scrubber Audit</span>
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
           </div>
-          <h3 className="text-base font-bold text-emerald-400 mt-1">100% PASSED</h3>
-          <span className="text-[9px] text-[#888888]">0 Tokens Exposed</span>
+          <h3 className="text-base font-bold text-emerald-400 mt-1">{telemetry.totalRuns > 0 ? "AUDITS AVAILABLE" : "NO AUDITS YET"}</h3>
+          <span className="text-[9px] text-[#888888]">Server-side key isolation</span>
         </div>
 
         <div className="bg-[#121214] border border-[#2A2A2C] rounded-sm p-3 shadow-xs">
@@ -64,7 +64,7 @@ export const ObservabilityLogs: React.FC<ObservabilityLogsProps> = ({
           <h3 className="text-base font-bold text-white mt-1">
             {telemetry.failedWorkflows}
           </h3>
-          <span className="text-[9px] text-[#888888]">Auto-recovery</span>
+          <span className="text-[9px] text-[#888888]">{telemetry.failedWorkflows > 0 ? "Review failure logs" : "No failures recorded"}</span>
         </div>
       </div>
 
